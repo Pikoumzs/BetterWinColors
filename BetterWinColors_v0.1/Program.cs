@@ -19,6 +19,9 @@ namespace BetterWinColors_v0._1
         private const uint SPIF_UPDATEINIFILE = 0x01;
         private const uint SPIF_SENDCHANGE = 0x02;
 
+        private const string DEFAULT_HIGHLIGHT = "0 120 215";
+        private const string DEFAULT_HOTTRACKING = "0 102 204";
+
         static void Main(string[] args)
         {
             Console.WriteLine("=== BetterWinColors v0.1 ===");
@@ -26,18 +29,23 @@ namespace BetterWinColors_v0._1
             Console.WriteLine("1 - Highlight");
             Console.WriteLine("2 - HotTrackingColor");
             Console.WriteLine("3 - Both");
-            Console.Write("Your choice : ");
-
-            string choice = Console.ReadLine();
+            Console.WriteLine("4 - Reset to Windows default colors");
+            Console.Write("Your choice: ");
+            string choice = Console.ReadLine()?.Trim();
 
             string highlight = null;
             string hotTracking = null;
+
+            if (choice == "4")
+            {
+                ResetColors();
+                return;
+            }
 
             if (choice == "1" || choice == "3")
             {
                 highlight = AskForColor("Highlight");
             }
-
             if (choice == "2" || choice == "3")
             {
                 hotTracking = AskForColor("HotTrackingColor");
@@ -45,7 +53,7 @@ namespace BetterWinColors_v0._1
 
             if (highlight == null && hotTracking == null)
             {
-                Console.WriteLine("Invalid choice.");
+                Console.WriteLine("Invalid or canceled choice.");
                 return;
             }
 
@@ -67,24 +75,21 @@ namespace BetterWinColors_v0._1
                 }
 
                 RefreshSystem();
-
                 Console.WriteLine("\nColor(s) successfully updated.");
                 AskForRestart();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur : {ex.Message}");
+                Console.WriteLine($"Error: {ex.Message}");
             }
         }
 
         static string AskForColor(string name)
         {
-            Console.WriteLine($"\nEnter the RGB values ​​for {name} :");
-
+            Console.WriteLine($"\nEnter the RGB values for {name}:");
             int r = AskChannel("R");
             int g = AskChannel("G");
             int b = AskChannel("B");
-
             return $"{r} {g} {b}";
         }
 
@@ -92,13 +97,38 @@ namespace BetterWinColors_v0._1
         {
             while (true)
             {
-                Console.Write($"{channel} (0-255) : ");
+                Console.Write($"{channel} (0-255): ");
                 string input = Console.ReadLine();
-
                 if (int.TryParse(input, out int value) && value >= 0 && value <= 255)
                     return value;
+                Console.WriteLine("Invalid value. Please try again.");
+            }
+        }
 
-                Console.WriteLine("Invalid value. Retry.");
+        static void ResetColors()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Colors", true))
+                {
+                    if (key == null)
+                    {
+                        Console.WriteLine("Unable to open the registry key.");
+                        return;
+                    }
+
+                    key.SetValue("Highlight", DEFAULT_HIGHLIGHT, RegistryValueKind.String);
+                    key.SetValue("HotTrackingColor", DEFAULT_HOTTRACKING, RegistryValueKind.String);
+
+                    Console.WriteLine("Colors reset to Windows default values.");
+                }
+
+                RefreshSystem();
+                AskForRestart();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during reset: {ex.Message}");
             }
         }
 
@@ -113,9 +143,8 @@ namespace BetterWinColors_v0._1
 
         static void AskForRestart()
         {
-            Console.Write("\nReboot system now ? (Y/N) : ");
+            Console.Write("\nReboot system now? (Y/N): ");
             string input = Console.ReadLine()?.Trim().ToUpper();
-
             if (input == "Y")
             {
                 Console.WriteLine("Processing reboot...");
